@@ -1,0 +1,40 @@
+# RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Quarto
+.quarto/
+_cache/
+*_files/
+_site/
+_book/
+/.quarto/
+
+# R Session-Daten
+*.rdb
+*.rdx
+.httr-oauth
+
+# Output-Dateien
+*.html
+*.pdf
+*.docx
+*.pptx
+*.mm
+*.png
+
+# Logs und temporäre Dateien
+*.log
+*~
+
+# Environment-Dateien
+.env
+.Renviron
+
+# System-Dateien
+.DS_Store
+Thumbs.db
+*.tmp
