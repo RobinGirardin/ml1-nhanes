@@ -120,12 +120,14 @@ summary(glm_phys)
 
 ```
 
-### GLM Binomial (binary outcome: SmokeNow)
+### GLM Binomial (binary outcome: Depressed)
 
 ```{r}
 #| label: "GLM Binomial"
 
-glm_smoke <- glm(SmokeNow ~ Age + Gender + Education + Alcohol12PlusYr + Race1, data = nhanes_sub, family = binomial)
-summary(glm_smoke)
+glm_depressed <- glm(Depressed ~ Age + Gender + SleepHrsNight + PhysActive +
+                   MaritalStatus, data = nhanes_sub,
+                 family = binomial)
+summary(glm_depressed)
 
 ```
