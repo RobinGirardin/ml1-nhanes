@@ -1,5 +1,5 @@
 ---
-title: "ML1 Analysis Daniel"
+title: "Daniel's Notebook"
 format: html
 ---
 
