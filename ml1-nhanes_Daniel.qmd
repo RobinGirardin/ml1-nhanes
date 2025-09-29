@@ -96,56 +96,66 @@ str(nhanes_sub)
 | **DaysPhysHlthBad** | count | Days with poor physical health (0–30) |
 | **DaysMentHlthBad** | count | Days with poor mental health (0–30) |
 | **LittleInterest** | binary | Little interest in activities (`Yes`/`No`) |
-| **Depressed** | binary | Feeling depressed (`Yes`/`No`) |
+| **Depressed** | categorical | Times feeling depressed (None, Most, Several, NAs) |
 
-## Analysis ideas
+## Generalised Linear Model (family: Binomial)
 
-### Linear Model (continuous outcome: BMI)
+### Make outcome variable Depressed (three levels) binary
 
 ```{r}
-#| label: "LM model"
+#| label: "Depressed binomial"
 
-summary(nhanes_sub)
+summary(nhanes_sub$Depressed)
 
-pairs(BMI ~ Age + Gender + Pulse + BPSysAve + PhysActive + Race1 ,
-      data = nhanes_sub, pch = ".", upper.panel = panel.smooth)
+nhanes_sub <- nhanes_sub %>%
+  mutate(
+    Depressed_bin = case_when(
+      Depressed == "None" ~ "no",
+      Depressed %in% c("Several", "Most") ~ "yes",
+      TRUE ~ NA_character_
+    ),
+    Depressed_bin = factor(Depressed_bin, levels = c("no", "yes"))
+  )
 
-nhanes_sub %>% 
-  ggplot(aes(x = Age, y = BMI)) +
-  geom_point() +
-  geom_smooth()
-
-lm_bmi <- lm(BMI ~ Age + Gender + Pulse + BPSysAve + PhysActive + Race1, data = nhanes_sub)
-summary(lm_bmi)
+# Check the recode
+table(nhanes_sub$Depressed, nhanes_sub$Depressed_bin, useNA = "ifany")
 
 ```
 
-### GLM Poisson (count outcome: AlcoholDay)
+### Visual inspection of Variable Depressed_bin
 
 ```{r}
-#| label: GLM Poisson
-#| message: false
-#| warning: false
+#| label: "Depressed_bin Visuals"
 
-summary(nhanes_sub$AlcoholDay)
+# Age vs Depressed
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = Age)) +
+  geom_boxplot()
 
-nhanes_sub %>%
-  ggplot(aes(x = Age, y = log(AlcoholDay), color = Gender)) + 
-  geom_point(alpha = 0.5) +
-  geom_smooth()
+# SleepHrsNight vs Depressed
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = SleepHrsNight)) +
+  geom_boxplot()
 
-glm_phys <- glm(AlcoholDay ~ Age + Gender + PhysActive + SleepTrouble + Race1,
-                data = nhanes_sub, family = poisson)
-summary(glm_phys)
+# Gender vs Depressed
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Gender, fill = Depressed_bin)) +
+  geom_bar(position = "fill")
+
+# PhysActive vs Depressed
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = PhysActive, fill = Depressed_bin)) +
+  geom_bar(position = "fill")
+
+# MaritalStatus vs Depressed
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = MaritalStatus, fill = Depressed_bin)) +
+  geom_bar(position = "fill") +
+  theme(axis.text.x = element_text(angle=45, hjust=1))
 
 ```
 
-### GLM Binomial (binary outcome: Depressed)
+### Create the models
 
 ```{r}
 #| label: "GLM Binomial"
 
-glm_depressed <- glm(Depressed ~ Age + Gender + SleepHrsNight + PhysActive +
+glm_depressed <- glm(Depressed_bin ~ Age + Gender + SleepHrsNight + PhysActive +
                    MaritalStatus, data = nhanes_sub,
                  family = binomial)
 summary(glm_depressed)
