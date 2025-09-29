@@ -63,7 +63,7 @@ str(nhanes_sub)
 ### Types of variables in the nhanes dataset: (i.e. nhanes_sub)
 
 | Variable | Type | Description / Example |
-|---------------|---------------|------------------------------------------|
+|-----------------|-----------------|---------------------------------------|
 | **SurveyYr** | categorical | Survey year (`2009_10`, `2011_12`) |
 | **Gender** | binary | Gender (`male`, `female`) |
 | **Age** | count | Age in years (0–80, integers) |
@@ -85,7 +85,7 @@ str(nhanes_sub)
 | **BPDiaAve** | continuous | Average diastolic blood pressure |
 | **PhysActive** | binary | Physically active (`Yes`/`No`) |
 | **PhysActiveDays** | count | Number of physically active days per week (0–7) |
-| **SleepHrsNight** | continuous | Hours of sleep per night |
+| **SleepHrsNight** | count | Hours of sleep per night |
 | **SleepTrouble** | binary | Trouble sleeping (`Yes`/`No`) |
 | **Alcohol12PlusYr** | binary | Ever drank alcohol (≥12 drinks per year, `Yes`/`No`) |
 | **AlcoholDay** | count | Number of alcoholic drinks per day |
@@ -105,7 +105,17 @@ str(nhanes_sub)
 ```{r}
 #| label: "LM model"
 
-lm_bmi <- lm(BMI ~ Age + Gender + HHIncomeMid + PhysActive + Race1, data = nhanes_sub)
+summary(nhanes_sub)
+
+pairs(BMI ~ Age + Gender + Pulse + BPSysAve + PhysActive + Race1 ,
+      data = nhanes_sub, pch = ".", upper.panel = panel.smooth)
+
+nhanes_sub %>% 
+  ggplot(aes(x = Age, y = BMI)) +
+  geom_point() +
+  geom_smooth()
+
+lm_bmi <- lm(BMI ~ Age + Gender + Pulse + BPSysAve + PhysActive + Race1, data = nhanes_sub)
 summary(lm_bmi)
 
 ```
@@ -113,9 +123,19 @@ summary(lm_bmi)
 ### GLM Poisson (count outcome: AlcoholDay)
 
 ```{r}
-#| label: "GLM Poisson"
+#| label: GLM Poisson
+#| message: false
+#| warning: false
 
-glm_phys <- glm(AlcoholDay ~ Age + Gender + PhysActive + SleepTrouble + Race1, data = nhanes_sub, family = poisson)
+summary(nhanes_sub$AlcoholDay)
+
+nhanes_sub %>%
+  ggplot(aes(x = Age, y = log(AlcoholDay), color = Gender)) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth()
+
+glm_phys <- glm(AlcoholDay ~ Age + Gender + PhysActive + SleepTrouble + Race1,
+                data = nhanes_sub, family = poisson)
 summary(glm_phys)
 
 ```
