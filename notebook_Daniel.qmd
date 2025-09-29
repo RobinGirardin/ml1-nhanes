@@ -63,7 +63,7 @@ str(nhanes_sub)
 ### Types of variables in the nhanes dataset: (i.e. nhanes_sub)
 
 | Variable | Type | Description / Example |
-|-----------------|-----------------|---------------------------------------|
+|------------------|------------------|------------------------------------|
 | **SurveyYr** | categorical | Survey year (`2009_10`, `2011_12`) |
 | **Gender** | binary | Gender (`male`, `female`) |
 | **Age** | count | Age in years (0–80, integers) |
@@ -152,12 +152,26 @@ ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = MaritalStatus, fill = 
 
 ### Create the models
 
+Previous research has shown that depression is often associated with demographic, socioeconomic, social, health, and lifestyle factors. Based on these findings, the following variables are included in the first model:
+
+-   **Demographic**: Age, Gender\
+-   **Socioeconomic**: Poverty\
+-   **Social**: MaritalStatus\
+-   **Health-related**: BMI, HealthGen\
+-   **Sleep / Activity**: SleepHrsNight, SleepTrouble, PhysActive
+
+These choices are supported by findings in NHANES-based studies, where factors such as poverty, marital status, physical activity, sleep problems, BMI, and general health perception were among the strongest predictors of depression (see e.g. Zhang et al., *BMC Medical Informatics and Decision Making*, 2025).
+
 ```{r}
 #| label: "GLM Binomial"
 
-glm_depressed <- glm(Depressed_bin ~ Age + Gender + SleepHrsNight + PhysActive +
-                   MaritalStatus, data = nhanes_sub,
-                 family = binomial)
+glm_depressed <- glm(
+  Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + BMI +
+                   HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
+  data = nhanes_sub,
+  family = binomial
+)
 summary(glm_depressed)
+
 
 ```
