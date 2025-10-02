@@ -63,7 +63,7 @@ str(nhanes_sub)
 ### Types of variables in the nhanes dataset: (i.e. nhanes_sub)
 
 | Variable | Type | Description / Example |
-|------------------|------------------|------------------------------------|
+|-------------------|-------------------|-----------------------------------|
 | **SurveyYr** | categorical | Survey year (`2009_10`, `2011_12`) |
 | **Gender** | binary | Gender (`male`, `female`) |
 | **Age** | count | Age in years (0–80, integers) |
@@ -98,7 +98,7 @@ str(nhanes_sub)
 | **LittleInterest** | binary | Little interest in activities (`Yes`/`No`) |
 | **Depressed** | categorical | Times feeling depressed (None, Most, Several, NAs) |
 
-## Generalised Linear Model (family: Binomial)
+## Generalised Additive Model (family: Binomial)
 
 ### Make outcome variable Depressed (three levels) binary
 
@@ -148,11 +148,44 @@ ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = MaritalStatus, fill = 
   geom_bar(position = "fill") +
   theme(axis.text.x = element_text(angle=45, hjust=1))
 
+# BMI vs Depressed
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = BMI)) +
+  geom_boxplot()
+
+# Poverty vs Depressed
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = Depressed_bin, y = Poverty)) +
+  geom_boxplot()
+
+# HealthGen vs Depressed
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = HealthGen, fill = Depressed_bin)) +
+  geom_bar(position = "fill")
+
+# SleepTrouble vs Depressed
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), aes(x = SleepTrouble, fill = Depressed_bin)) +
+  geom_bar(position = "fill")
+
+# library(ggmosaic)
+# ggplot(filter(nhanes_sub, !is.na(Depressed_bin))) +
+#   geom_mosaic(aes(x = product(Gender, MaritalStatus), fill = Depressed_bin)) +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# SleepTrouble nach Gender
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), 
+       aes(x = SleepTrouble, fill = Depressed_bin)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ Gender)
+
+# PhysActive nach MaritalStatus
+ggplot(filter(nhanes_sub, !is.na(Depressed_bin)), 
+       aes(x = PhysActive, fill = Depressed_bin)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ MaritalStatus)
+
 ```
 
 ### Create the models
 
-Previous research has shown that depression is often associated with demographic, socioeconomic, social, health, and lifestyle factors. Based on these findings, the following variables are included in the first model:
+Previous research has shown that depression is often associated with demographic, socioeconomic, social, health, and lifestyle factors. Based on these findings and after visual inspection of the graphs above, the following variables are included in the first model:
 
 -   **Demographic**: Age, Gender\
 -   **Socioeconomic**: Poverty\
@@ -163,15 +196,72 @@ Previous research has shown that depression is often associated with demographic
 These choices are supported by findings in NHANES-based studies, where factors such as poverty, marital status, physical activity, sleep problems, BMI, and general health perception were among the strongest predictors of depression (see e.g. Zhang et al., *BMC Medical Informatics and Decision Making*, 2025).
 
 ```{r}
-#| label: "GLM Binomial"
+#| label: "GLM_Binomial_1"
 
-glm_depressed <- glm(
-  Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + BMI +
+Depressed_data <- nhanes_sub %>%
+  filter(!is.na(Depressed_bin))
+
+glm_depressed_1 <- glm(Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + BMI +
                    HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
-  data = nhanes_sub,
-  family = binomial
-)
-summary(glm_depressed)
+                   data = Depressed_data,
+                   family = binomial)
+summary(glm_depressed_1)
 
 
 ```
+
+```{r}
+#| label: "GLM_Binomial_missings"
+
+vars_model <- c("Depressed_bin", "Age", "Gender", "Poverty", "MaritalStatus", "BMI", "HealthGen", "SleepHrsNight", "SleepTrouble", "PhysActive")
+
+Depressed_data %>%
+  select(all_of(vars_model)) %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(cols = everything(),
+                      names_to = "Variable", values_to = "Missing_Count")
+
+
+
+```
+
+```{r}
+#| label: "ImputeMissingsMedianExklMaritalStatus"
+
+Depressed_data_imp <- Depressed_data %>%
+  mutate(
+    Poverty = ifelse(is.na(Poverty), median(Poverty, na.rm = TRUE), Poverty),
+    BMI = ifelse(is.na(BMI), median(BMI, na.rm = TRUE), BMI),
+    SleepHrsNight = ifelse(is.na(SleepHrsNight), median(SleepHrsNight, na.rm = TRUE), SleepHrsNight),)
+
+Depressed_data_imp %>%
+  select(all_of(vars_model)) %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(cols = everything(),
+                      names_to = "Variable", values_to = "Missing_Count")
+
+```
+
+```{r}
+#| label: "GLM_Binomial_2"
+
+glm_depressed_2 <- glm(Depressed_bin ~ Age + Gender + Poverty + MaritalStatus + BMI +
+                   HealthGen + SleepHrsNight + SleepTrouble + PhysActive,
+                   data = Depressed_data_imp,
+                   family = binomial)
+summary(glm_depressed_2)
+
+```
+
+I check collinearity.
+
+```{r}
+#| label: "GLM_Binomial_2_Collinear"
+
+library(car)
+vif(glm_depressed)   # auf dein Modell anwenden
+
+
+```
+
+I doubt collinearity of HealthGen and/or SleepTrouble with Depressed. This is not an issue for the model, but for the interpretation. I could calculate two models, with and without those.
